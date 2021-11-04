@@ -1,0 +1,31 @@
+﻿<Window x:Name="window" x:Class="DocAuto.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DocAuto"
+        mc:Ignorable="d"
+        Title="DocAuto" Height="450" Width="800">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top" Height="20">
+            <MenuItem Header="Файл">
+                <MenuItem Header="Выбрать шаблон" Click="SelectTemplate_Click"></MenuItem>
+                <MenuItem x:Name="lastDocumentButton" Header="Открыть последний документ" IsEnabled="False"></MenuItem>
+                <MenuItem x:Name="exitTemplateButton" Header="Закрыть шаблон" IsEnabled="False" Click="exitTemplateButton_Click"></MenuItem>
+                <Separator></Separator>
+                <MenuItem x:Name="saveButton" Header="Сохранить" IsEnabled="False" Click="SaveDocument_Click"></MenuItem>
+                <MenuItem x:Name="saveAsButton" Header="Сохранить как" IsEnabled="False" Click="SaveAsDocument_Click"></MenuItem>
+                <Separator></Separator>
+                <MenuItem x:Name="ExportButton" Header="Экспорт" IsEnabled="False" Click="ExportButton_Click"></MenuItem>
+                <Separator></Separator>
+                <MenuItem Header="Выход" Click="Exit_Click"></MenuItem>
+            </MenuItem>
+            <MenuItem Header="Правка">
+                <MenuItem x:Name="clearFields" IsEnabled="False" Header="Очистить поля" Click="ClearFields_Click"></MenuItem>
+            </MenuItem>
+            <MenuItem Header="О программе" HorizontalContentAlignment="Stretch"></MenuItem>
+        </Menu>
+        <ListBox x:Name="fields"/>
+    </DockPanel>
+      
+</Window>
