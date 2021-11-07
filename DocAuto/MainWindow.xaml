@@ -10,7 +10,7 @@
         <Menu DockPanel.Dock="Top" Height="20">
             <MenuItem Header="Файл">
                 <MenuItem Header="Выбрать шаблон" Click="SelectTemplate_Click"></MenuItem>
-                <MenuItem x:Name="lastDocumentButton" Header="Открыть последний документ" IsEnabled="False"></MenuItem>
+                <MenuItem x:Name="lastDocumentMenu" Header="Открыть последний документ" IsEnabled="False"></MenuItem>
                 <MenuItem x:Name="exitTemplateButton" Header="Закрыть шаблон" IsEnabled="False" Click="exitTemplateButton_Click"></MenuItem>
                 <Separator></Separator>
                 <MenuItem x:Name="saveButton" Header="Сохранить" IsEnabled="False" Click="SaveDocument_Click"></MenuItem>

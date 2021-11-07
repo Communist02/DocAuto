@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using DocumentFormat.OpenXml.Packaging;
@@ -27,6 +28,19 @@ namespace DocAuto
         public MainWindow()
         {
             InitializeComponent();
+            try
+            {
+                using (StreamReader reader = new StreamReader("docauto.json"))
+                {
+                    string json = reader.ReadToEnd();
+                    config = JsonSerializer.Deserialize<Config>(json);
+                }
+                LastDocumentMenuUpdate();
+            }
+            catch
+            {
+                config = new Config();
+            }
         }
 
         public static string filePath = "";
@@ -34,6 +48,32 @@ namespace DocAuto
         public static WordprocessingDocument doc;
         public static Dictionary<string, BookmarkStart> bookmarks = new Dictionary<string, BookmarkStart>();
         public static Dictionary<string, string> bookmarksTemp = new Dictionary<string, string>();
+        static Config config;
+
+        void LastDocumentMenuUpdate()
+        {
+            lastDocumentMenu.Items.Clear();
+            MenuItem menuItem;
+            foreach (string filePath in config.lastDocument)
+            {
+                menuItem = new MenuItem() { Header = filePath };
+                menuItem.Click += LastDocument_Click;
+                lastDocumentMenu.Items.Add(menuItem);
+            }
+
+            if (config.CountLastDocument() > 0)
+            {
+                lastDocumentMenu.IsEnabled = true;
+                lastDocumentMenu.Items.Add(new Separator());
+                menuItem = new MenuItem() { Header = "Очистить список" };
+                menuItem.Click += LastDocumentClear_Click;
+                lastDocumentMenu.Items.Add(menuItem);
+            }
+            else
+            {
+                lastDocumentMenu.IsEnabled = false;
+            }
+        }
 
         void DocInFields()
         {
@@ -46,20 +86,34 @@ namespace DocAuto
 
         void OpenDoc(string filePath, bool newDoc = true)
         {
+            string[] file = filePath.Split('\\');
+            window.Title = file[file.Length - 1];
+            doc = WordprocessingDocument.Open(filePath, true);
             if (newDoc)
             {
                 MainWindow.filePath = filePath;
-                string[] file = filePath.Split('\\');
                 fileName = file[file.Length - 1];
+                config.addDocument(filePath);
+                LastDocumentMenuUpdate();
+                using (StreamWriter writer = new StreamWriter("docauto.json", false))
+                {
+                    string json = JsonSerializer.Serialize<Config>(config);
+                    writer.WriteLine(json);
+                }
             }
-            window.Title = fileName;
-            doc = WordprocessingDocument.Open(filePath, true);
             bookmarks.Clear();
             bookmarksTemp.Clear();
             foreach (BookmarkStart bookmark in doc.MainDocumentPart.RootElement.Descendants<BookmarkStart>())
             {
                 bookmarks[bookmark.Name] = bookmark;
-                bookmarksTemp[bookmark.Name] = bookmark.NextSibling().GetFirstChild<Text>().Text;
+                if (bookmark.NextSibling().GetFirstChild<Text>() != null)
+                {
+                    bookmarksTemp[bookmark.Name] = bookmark.NextSibling().GetFirstChild<Text>().Text;
+                }
+                else
+                {
+                    bookmarksTemp[bookmark.Name] = "";
+                }
             }
         }
 
@@ -70,18 +124,18 @@ namespace DocAuto
                 var bookmarkText = bookmarks[bookmark.Key].NextSibling();
                 if (bookmarkText != null)
                 {
+                    bookmarks[bookmark.Key].Name = bookmark.Key;
                     bookmarkText.GetFirstChild<Text>().Text = bookmark.Value;
                 }
             }
         }
 
-        private void SelectTemplate_Click(object sender, RoutedEventArgs e)
+        private void LastDocument_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog dialog = new OpenFileDialog();
-            dialog.Filter = "Документы Word|*.docx;*dotx";
-            if (dialog.ShowDialog() == true)
+            string filePath = ((MenuItem)e.OriginalSource).Header.ToString();
+            try
             {
-                OpenDoc(dialog.FileName);
+                OpenDoc(filePath);
                 if (bookmarks.Count > 0)
                 {
                     DocInFields();
@@ -94,7 +148,66 @@ namespace DocAuto
                 else
                 {
                     doc.Dispose();
+                    MessageBox.Show("Документ не содержит закладок", "Ошибка");
                     window.Title = "DocAuto";
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Не удалось открыть файл", "Ошибка открытия", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (fileName == "")
+                {
+                    window.Title = "DocAuto";
+                }
+                else
+                {
+                    window.Title = fileName;
+                }
+            }
+        }
+
+        private void LastDocumentClear_Click(object sender, RoutedEventArgs e)
+        {
+            config.LastDocumentClear();
+            LastDocumentMenuUpdate();
+        }
+
+        private void SelectTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Filter = "Документы Word|*.docx;*dotx";
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    OpenDoc(dialog.FileName);
+                    if (bookmarks.Count > 0)
+                    {
+                        DocInFields();
+                        saveButton.IsEnabled = true;
+                        saveAsButton.IsEnabled = true;
+                        exitTemplateButton.IsEnabled = true;
+                        clearFields.IsEnabled = true;
+                        ExportButton.IsEnabled = true;
+                    }
+                    else
+                    {
+                        doc.Dispose();
+                        MessageBox.Show("Документ не содержит закладок", "Ошибка");
+                        window.Title = "DocAuto";
+                    }
+                }
+                catch
+                {
+                    MessageBox.Show("Не удалось открыть файл", "Ошибка открытия", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (fileName == "")
+                    {
+                        window.Title = "DocAuto";
+                    }
+                    else
+                    {
+                        window.Title = fileName;
+                    }
                 }
             }
         }
@@ -150,6 +263,7 @@ namespace DocAuto
             clearFields.IsEnabled = false;
             ExportButton.IsEnabled = false;
             doc.Dispose();
+            fileName = "";
             bookmarks.Clear();
             bookmarksTemp.Clear();
             fields.Items.Clear();
